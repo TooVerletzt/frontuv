@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
-import { useColorScheme } from 'react-native-appearance'; // Para detectar el tema del sistema
+import { useColorScheme } from 'react-native'; // Para detectar el tema del sistema
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 

@@ -1,79 +1,120 @@
 // src/screens/HomeScreen.tsx
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import Button from '@/components/Button';
-import Input from '@/components/Input';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
-
-// Simulamos los datos que vendrían de la API
-const mockUserData = [
-  { id: '1', nombre: 'Juan Pérez', matricula: 'zS23004742', email: 'juan.pe@example.com' },
-  { id: '2', nombre: 'Carlos Gómez', matricula: 'zS23004743', email: 'carlos.go@example.com' },
-  { id: '3', nombre: 'Ana Martínez', matricula: 'zS23004744', email: 'ana.ma@example.com' },
-];
-
-const HomeScreen = () => {
-  // Estado para manejar los usuarios
-  const [users, setUsers] = useState<any[]>([]);
-
-  // Estado para el indicador de carga (simulamos que los datos se están obteniendo)
-  const [loading, setLoading] = useState(true);
-
-  // Simulamos que obtenemos los usuarios de la API
-  useEffect(() => {
-    setTimeout(() => {
-      setUsers(mockUserData);  // Simulamos que la API nos dio estos datos
-      setLoading(false); // Después de "obtener los datos", cambiamos el estado de loading
-    }, 2000); // Simulamos que toma 2 segundos obtener los datos
-  }, []);
+const HomeScreen = ({ navigation }: { navigation: any }) => {
+  const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  const diaActual = new Date().getDay(); // 0 = domingo, 1 = lunes, etc.
+  const diaMap = [6, 0, 1, 2, 3, 4, 5]; // para que el domingo esté al final
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Usuarios:</Text>
+      {/* Logo */}
+      <Image
+        source={require('@/assets/logo.png')} // Asegúrate de que el logo esté en assets/logo.png
+        style={styles.logo}
+        resizeMode="contain"
+      />
 
-      {loading ? (
-        // Si estamos cargando, mostramos el spinner de carga
-        <ActivityIndicator size="large" color="#007bff" />
-      ) : (
-        // Cuando ya no estamos cargando, mostramos la lista de usuarios
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.cardText}>Nombre: {item.nombre}</Text>
-              <Text style={styles.cardText}>Matrícula: {item.matricula}</Text>
-              <Text style={styles.cardText}>Correo: {item.email}</Text>
-            </View>
-          )}
-        />
-      )}
+      <Text style={styles.title}>Menú Principal</Text>
+
+      {/* Botones */}
+      <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Results')}>
+        <Text style={styles.menuButtonText}>Registros y Avances</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Settings')}>
+        <Text style={styles.menuButtonText}>Configuración</Text>
+      </TouchableOpacity>
+
+      {/* Calendario semanal */}
+      <View style={styles.calendar}>
+        {dias.map((dia, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dia,
+              diaMap[diaActual] === index && styles.diaActual // resalta el día actual
+            ]}
+          >
+            <Text style={styles.diaTexto}>{dia}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Botón Comenzar Rutina */}
+      <TouchableOpacity style={styles.startButton} onPress={() => navigation.navigate('Evaluation')}>
+        <Text style={styles.startButtonText}>Comenzar Rutina</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
-// Estilos para la pantalla
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#fff',
+  },
+  logo: {
+    width: 160,
+    height: 80,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '600',
     marginBottom: 20,
-    textAlign: 'center',
   },
-  card: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    marginBottom: 10,
+  menuButton: {
+    width: '90%',
+    backgroundColor: '#2E7D32',
+    paddingVertical: 12,
     borderRadius: 8,
+    marginBottom: 12,
   },
-  cardText: {
+  menuButtonText: {
+    color: '#fff',
     fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  calendar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 30,
+    marginBottom: 20,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  dia: {
+    width: 35,
+    height: 35,
+    borderRadius: 20,
+    backgroundColor: '#eee',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  diaActual: {
+    backgroundColor: '#2E7D32',
+  },
+  diaTexto: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  startButton: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 40,
+    marginTop: 20,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

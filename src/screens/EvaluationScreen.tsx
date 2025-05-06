@@ -1,60 +1,70 @@
 // src/screens/EvaluationScreen.tsx
 
-import React, { useState } from 'react';
-import { View, Text, Alert, StyleSheet } from 'react-native';
-import Button from '@/components/Button';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
-const EvaluationScreen = ({ navigation, route }: { navigation: any, route: any }) => {
-  const { imc } = route.params;
-  const [evaluations, setEvaluations] = useState({
-    fuerza: null,
-    resistencia: null,
-    flexibilidad: null,
-    velocidad: null,
-  });
-  const [completed, setCompleted] = useState<string[]>([]);
-
-  const handleEvaluation = (type: keyof typeof evaluations) => {
-    const value = Math.floor(Math.random() * 26) + 75; // Simula un resultado entre 75 y 100
-    Alert.alert(`${type.charAt(0).toUpperCase() + type.slice(1)} completado`, `Resultado: ${value}`, [
-      {
-        text: "OK", onPress: () => {
-          setEvaluations(prev => ({ ...prev, [type]: value }));
-          setCompleted(prev => [...prev, type]);
-        }
-      }
-    ]);
-  };
-
-  const isAllCompleted = completed.length === 4;
-
-  const handleFinish = () => {
-    navigation.navigate('Results', { ...evaluations, imc });
-  };
+const EvaluationScreen = ({ navigation }: { navigation: any }) => {
+  const pruebas = [
+    { nombre: 'Fuerza', ruta: 'PruebaFuerza' },
+    { nombre: 'Flexibilidad', ruta: 'PruebaFlexibilidad' },
+    { nombre: 'Resistencia', ruta: 'PruebaResistencia' },
+    { nombre: 'Velocidad', ruta: 'PruebaVelocidad' },
+  ];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Evaluación Física</Text>
+      {/* Logo */}
+      <Image
+        source={require('@/assets/logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
 
-      {['fuerza', 'resistencia', 'flexibilidad', 'velocidad'].map((item) => (
-        <Button
-          key={item}
-          title={`Evaluar ${item}`}
-          onPress={() => handleEvaluation(item as any)}
-          disabled={completed.includes(item)}
-        />
+      <Text style={styles.title}>Evaluaciones Físicas</Text>
+
+      {pruebas.map((prueba, index) => (
+        <TouchableOpacity
+          key={index}
+          style={styles.testButton}
+          onPress={() => navigation.navigate(prueba.ruta)}
+        >
+          <Text style={styles.testButtonText}>{prueba.nombre}</Text>
+        </TouchableOpacity>
       ))}
-
-      {isAllCompleted && (
-        <Button title="Finalizar Evaluación" onPress={handleFinish} />
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  container: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  logo: {
+    width: 160,
+    height: 80,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  testButton: {
+    width: '90%',
+    backgroundColor: '#2E7D32',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
 
 export default EvaluationScreen;
