@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { TouchableOpacity } from 'react-native';
 import UserService from '@/services/UserService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }: { navigation: any }) => {
   // Estados para guardar los valores del formulario
@@ -13,15 +14,19 @@ const LoginScreen = ({ navigation }: { navigation: any }) => {
   const [password, setPassword] = useState('');
 
   // Función que maneja el inicio de sesión
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor ingresa tu correo y contraseña');
       return;
     }
-  
+
     const valid = UserService.authenticate(email, password);
     if (valid) {
-      navigation.navigate('InputData');
+      // Guarda una sesión ficticia
+      await AsyncStorage.setItem('authToken', 'token_de_ejemplo');
+      
+      // Redirige a la pantalla principal
+      navigation.replace('Home');
     } else {
       Alert.alert('Error', 'Credenciales incorrectas');
     }
@@ -64,7 +69,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#fff', // o el color que uses
   },
   title: {
     fontSize: 24,

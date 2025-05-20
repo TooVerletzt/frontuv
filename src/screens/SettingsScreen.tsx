@@ -1,31 +1,39 @@
 // src/screens/SettingsScreen.tsx
 
 import React, { useState } from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { useColorScheme } from 'react-native'; // Para detectar el tema del sistema
-import Button from '@/components/Button';
 import Input from '@/components/Input';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Button } from 'react-native';
 
-const SettingsScreen = () => {
-  // Estado para manejar el cambio de tema
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Cambia el tema
-  const toggleSwitch = () => setIsDarkMode(previousState => !previousState);
+const SettingsScreen = ({ navigation }: { navigation: any }) => {
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('authToken');
+    Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente');
+    navigation.replace('Login');
+  };
 
   return (
-    <View style={[styles.container, isDarkMode ? styles.darkMode : styles.lightMode]}>
-      <Text style={styles.title}>Configuraciones</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Configuración</Text>
 
-      <View style={styles.settingContainer}>
-        <Text style={styles.settingText}>Modo Oscuro</Text>
-        <Switch
-          value={isDarkMode}
-          onValueChange={toggleSwitch}
-        />
-      </View>
+      <TouchableOpacity style={styles.optionButton} onPress={() => navigation.navigate('Profile')}>
+        <Text style={styles.optionText}>Perfil</Text>
+      </TouchableOpacity>
 
-      {/* Aquí podrías agregar más configuraciones si lo necesitas */}
+      {/* Aquí puedes poner un toggle si implementas el modo claro/oscuro */}
+      <TouchableOpacity style={styles.optionButton}>
+        <Text style={styles.optionText}>Modo Oscuro: Próximamente 🌙</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.optionButton} onPress={() => Linking.openURL('https://tusitio.com/terminos')}>
+        <Text style={styles.optionText}>Términos de uso</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Cerrar sesión</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -33,31 +41,37 @@ const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 24,
+    backgroundColor: '#fff',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
   },
-  settingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  optionButton: {
+    padding: 14,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  logoutButton: {
+    marginTop: 30,
+    padding: 14,
+    backgroundColor: '#d32f2f',
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 20,
   },
-  settingText: {
-    fontSize: 18,
-  },
-  darkMode: {
-    backgroundColor: '#333',
-    color: 'white',
-  },
-  lightMode: {
-    backgroundColor: '#fff',
-    color: 'black',
+  logoutText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

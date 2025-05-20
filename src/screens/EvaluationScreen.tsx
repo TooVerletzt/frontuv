@@ -15,7 +15,7 @@ const EvaluationScreen = ({ navigation }: { navigation: any }) => {
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={require('@/assets/logo.png')}
+        source={require('../../assets/icon.png')}
         style={styles.logo}
         resizeMode="contain"
       />

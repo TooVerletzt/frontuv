@@ -3,28 +3,34 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
-const HomeScreen = ({ navigation }: { navigation: any }) => {
-  const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-  const diaActual = new Date().getDay(); // 0 = domingo, 1 = lunes, etc.
-  const diaMap = [6, 0, 1, 2, 3, 4, 5]; // para que el domingo esté al final
+const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const diaActual = new Date().getDay(); // 0 = domingo, 1 = lunes, etc.
+const diaMap = [6, 0, 1, 2, 3, 4, 5]; // para que el domingo esté al final
 
+const HomeScreen = ({ navigation }: { navigation: any }) => {
   return (
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={require('@/assets/logo.png')} // Asegúrate de que el logo esté en assets/logo.png
+        source={require('../../assets/icon.png')} // Asegúrate de que el logo esté en assets/logo.png
         style={styles.logo}
         resizeMode="contain"
       />
 
       <Text style={styles.title}>Menú Principal</Text>
 
-      {/* Botones */}
-      <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Results')}>
+      {/* Botones de Navegación */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => navigation.navigate('Results')}
+      >
         <Text style={styles.menuButtonText}>Registros y Avances</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Settings')}>
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => navigation.navigate('Settings')}
+      >
         <Text style={styles.menuButtonText}>Configuración</Text>
       </TouchableOpacity>
 
@@ -44,7 +50,9 @@ const HomeScreen = ({ navigation }: { navigation: any }) => {
       </View>
 
       {/* Botón Comenzar Rutina */}
-      <TouchableOpacity style={styles.startButton} onPress={() => navigation.navigate('Evaluation')}>
+      <TouchableOpacity 
+        style={styles.startButton} 
+        onPress={() => navigation.navigate('Evaluation')}>
         <Text style={styles.startButtonText}>Comenzar Rutina</Text>
       </TouchableOpacity>
     </View>
@@ -54,13 +62,14 @@ const HomeScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     padding: 24,
+    alignItems: 'center',
     backgroundColor: '#fff',
+    justifyContent: 'center',
   },
   logo: {
-    width: 160,
-    height: 80,
+    width: 140,
+    height: 70,
     marginBottom: 10,
   },
   title: {
