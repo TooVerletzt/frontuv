@@ -5,8 +5,17 @@ module.exports = {
       'module-resolver',
       {
         alias: {
-          '@': './src',  // Esto permite que utilices el alias '@' para 'src/'
+          '@': './src',  // Alias para src/
         },
+      },
+    ],
+    [
+      'module:react-native-dotenv',
+      {
+        moduleName: '@env',
+        path: '.env',
+        safe: false,
+        allowUndefined: true,
       },
     ],
   ],
