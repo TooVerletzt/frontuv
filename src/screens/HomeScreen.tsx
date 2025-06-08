@@ -20,6 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserService from '../services/UserService';
 
+const logo = require('../../assets/logo-uvfit.png');
+
 type RootStackParamList = {
   Home: { evaluationsDone?: boolean; userMatricula?: string } | undefined;
   PhysicalEvaluationScreen: undefined;
@@ -46,68 +48,56 @@ const HomeScreen = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  // Tomamos la matrícula desde los params si viene (login debería pasarla)
-  const routeParams = (route.params as any) ?? {};
-  const loggedUserMatricula = typeof routeParams.userMatricula === 'string'
-    ? routeParams.userMatricula
-    : 'ZS24000001';
+  // Leemos params de navegación
+  const params = (route.params as any) ?? {};
+  const loggedUserMatricula =
+    typeof params.userMatricula === 'string' ? params.userMatricula : 'ZS24000001';
   const user = UserService.getUserByMatricula(loggedUserMatricula);
   const loggedUserName = user ? user.nombre : 'Invitado';
 
-  // Estado de si ya completó evaluaciones
-  const [isNewUser, setIsNewUser] = useState(!routeParams.evaluationsDone);
+  // Determina si ya completó evaluación
+  const [isNewUser, setIsNewUser] = useState(!params.evaluationsDone);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Datos de fecha actual
-  const currentDate = new Date();
+  // Fecha
+  const now = new Date();
   const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
   ];
   const weekdays = [
-    'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado',
+    'Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'
   ];
-  const dayOfWeek = weekdays[currentDate.getDay()];
-  const dayOfMonth = currentDate.getDate();
-  const month = months[currentDate.getMonth()];
-  const year = currentDate.getFullYear();
-  const todayWeekDay = (currentDate.getDay() + 6) % 7; // Ajuste: lunes=0
+  const dayOfWeek = weekdays[now.getDay()];
+  const dayOfMonth = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  const todayIdx = (now.getDay() + 6) % 7; // lunes=0
 
-  // Cada vez que la pantalla recibe foco:
+  // Cuando regresa foco, revisa si trajeron el flag evaluationsDone
   useFocusEffect(
     useCallback(() => {
-      const params = (route.params as any) ?? {};
-      if (params.evaluationsDone === true) {
+      const p = (route.params as any) ?? {};
+      if (p.evaluationsDone) {
         setIsNewUser(false);
-        // Limpiar flag para no reejecutar
         navigation.setParams({ evaluationsDone: false });
       }
     }, [route.params])
   );
 
-  // Manejadores de botón
-  const onPressVerAvances = () => {
+  const handleVerAvances = () => {
     if (isNewUser) {
-      Alert.alert('Primero realiza las evaluaciones', 'Debes completar las evaluaciones para ver tus avances.');
+      Alert.alert('No hay datos','Aún no completas ninguna evaluación.');
     } else {
-      // Navegar a Results; podría necesitar los params guardados previamente
-      navigation.navigate('Results', {
-        // Aquí tendrías que pasar los valores calculados
-        // Ejemplo:
-        fuerza: routeParams.fuerza ?? 0,
-        velocidad: routeParams.velocidad ?? 0,
-        flexibilidad: routeParams.flexibilidad ?? 0,
-        resistencia: routeParams.resistencia ?? 0,
-        imc: routeParams.imc ?? '',
-      });
+      navigation.navigate('Progress');
     }
   };
 
-  const onPressComenzarRutina = () => {
+  const handleComenzarRutina = () => {
     if (isNewUser) {
-      Alert.alert('Primero realiza las evaluaciones', 'Debes completar las evaluaciones para comenzar tu rutina.');
+      Alert.alert('No hay datos','Debes terminar las evaluaciones primero.');
     } else {
-      navigation.navigate('Register');
+      navigation.navigate('Routine');
     }
   };
 
@@ -116,39 +106,34 @@ const HomeScreen = () => {
       <ImageBackground
         source={require('../../assets/waves.jpg')}
         style={styles.fullBackground}
-        imageStyle={{ opacity: 0.59, transform: [{ scale: 1.2 }] }}
+        imageStyle={{ opacity: 0.6, transform: [{ scale: 1.2 }] }}
       >
-        {/* ─── Top Bar ────────────────────────────────────────────────────────── */}
-        <View style={styles.topBarUala}>
-          <View style={styles.leftSection}>
+        {/* Top Bar */}
+        <View style={styles.topBar}>
+          <View>
             <Text style={styles.greetingText}>Hola, {loggedUserName}</Text>
-            <Text style={styles.dateTextHeader}>
-              {`${dayOfWeek}, ${dayOfMonth} de \n${month} del ${year}`}
+            <Text style={styles.dateText}>
+              {dayOfWeek}, {dayOfMonth} de{'\n'}{month} del {year}
             </Text>
           </View>
-
-          <View style={styles.rightSection}>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="notifications-outline" size={24} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="help-circle-outline" size={24} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => setMenuVisible(true)}>
+          <View style={styles.icons}>
+            <TouchableOpacity><Ionicons name="notifications-outline" size={24} color="white" /></TouchableOpacity>
+            <TouchableOpacity><Ionicons name="help-circle-outline" size={24} color="white" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setMenuVisible(true)}>
               <Ionicons name="menu" size={28} color="white" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ─── Menú Modal ────────────────────────────────────────────────────────── */}
+        {/* Menú */}
         <Modal
-          animationType="fade"
           transparent
           visible={menuVisible}
+          animationType="fade"
           onRequestClose={() => setMenuVisible(false)}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
-            <View style={[styles.menuContainer, isDark ? styles.menuDark : styles.menuLight]}>
+            <View style={[styles.menuBox, isDark ? styles.menuDark : styles.menuLight]}>
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => {
@@ -156,103 +141,59 @@ const HomeScreen = () => {
                   navigation.navigate('Settings');
                 }}
               >
-                <Text style={[styles.menuText, isDark ? styles.textLight : styles.textDark]}>
-                  Configuración
-                </Text>
+                <Text style={styles.menuText}>Configuración</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
         </Modal>
 
-        {/* ─── Bienvenida ────────────────────────────────────────────────────────── */}
-        <View style={styles.greetingContainer}>
-          <Text style={[styles.greeting, isDark ? styles.textLight : styles.textDark]}>
-            ¡Bienvenido a UVFit!
-          </Text>
-          <Text style={[styles.motivationalTextBody, isDark ? styles.textLight : styles.textDark]}>
-            "¡Nunca te rindas, cada día cuenta!"
-          </Text>
+        {/* Bienvenida */}
+        <View style={styles.welcome}>
+          <Text style={styles.title}>¡Bienvenido a UVFit!</Text>
+          <Text style={styles.subtitle}>"¡Nunca te rindas, cada día cuenta!"</Text>
         </View>
 
-        {/* ─── Calendario Semanal ────────────────────────────────────────────────────────── */}
-        <View style={styles.weekContainer}>
-          <ImageBackground
-            source={require('../../assets/treadmill_pattern.jpg')}
-            style={styles.weekBackground}
-            imageStyle={{ opacity: 0.9 }}
-          >
-            {WEEK_DAYS.map((day, index) => {
-              const isToday = index === todayWeekDay;
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.dayCircle,
-                    isToday && styles.todayCircle,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      isToday ? styles.todayText : styles.dayText,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                </View>
-              );
-            })}
-          </ImageBackground>
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image source={logo} style={styles.logo} />
         </View>
 
-        {/* ─── Botones ────────────────────────────────────────────────────────── */}
-        <View style={styles.buttonsContainer}>
-          {/* Evaluaciones Físicas (siempre habilitado) */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('PhysicalEvaluationScreen')}
-            activeOpacity={0.7}
-          >
+        {/* Calendario */}
+        <View style={styles.calendar}>
+          {WEEK_DAYS.map((d, i) => (
+            <View key={i} style={[styles.dayCircle, i === todayIdx && styles.todayCircle]}>
+              <Text style={i === todayIdx ? styles.todayText : styles.dayText}>{d}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Botones */}
+        <View style={styles.buttons}>
+          <TouchableOpacity onPress={() => navigation.navigate('PhysicalEvaluationScreen')}>
             <LinearGradient
-              colors={isDark ? ['#276749', '#2f855a'] : ['#48bb78', '#2f855a']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              colors={['#48bb78','#2f855a']}
+              start={{x:0,y:0}} end={{x:1,y:0}}
               style={styles.button}
             >
               <Text style={styles.buttonText}>Evaluaciones Físicas</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Ver Avances */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Progress')}
-            activeOpacity={isNewUser ? 1 : 0.7}
-          >
+          <TouchableOpacity onPress={handleVerAvances}>
             <LinearGradient
-              colors={isDark ? ['#276749', '#2f855a'] : ['#48bb78', '#2f855a']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.button, isNewUser && styles.buttonDisabled]}
+              colors={['#48bb78','#2f855a']}
+              start={{x:0,y:0}} end={{x:1,y:0}}
+              style={styles.button}
             >
               <Text style={styles.buttonText}>Ver Avances</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Comenzar Rutina */}
-          <TouchableOpacity
-            onPress={() => {
-              if (isNewUser) {
-              Alert.alert('Primero realiza las evaluaciones', 'Debes completar las evaluaciones para comenzar tu rutina.');
-              } else {
-                navigation.navigate('Routine');
-              }
-            }}
-            activeOpacity={isNewUser ? 1 : 0.7}
-            >
+          <TouchableOpacity onPress={handleComenzarRutina}>
             <LinearGradient
-              colors={isDark ? ['#276749', '#2f855a'] : ['#48bb78', '#2f855a']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.button, isNewUser && styles.buttonDisabled]}
+              colors={['#48bb78','#2f855a']}
+              start={{x:0,y:0}} end={{x:1,y:0}}
+              style={styles.button}
             >
               <Text style={styles.buttonText}>Comenzar Rutina</Text>
             </LinearGradient>
@@ -269,168 +210,64 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   lightBg: { backgroundColor: '#fff' },
   darkBg: { backgroundColor: '#121212' },
-  fullBackground: {
-    flex: 1,
-    resizeMode: 'cover',
-    width: '100%',
-    height: '100%',
-  },
-  topBarUala: {
+  fullBackground: { flex: 1, width: '100%', height: '100%' },
+
+  topBar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: '#2f855a',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    padding: 16,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
     elevation: 8,
   },
-  leftSection: {
-    flexDirection: 'column',
+  greetingText: { color: 'white', fontSize: 18, fontWeight: '700' },
+  dateText: { color: 'white', fontSize: 14, marginTop: 4 },
+  icons: { flexDirection: 'row', width: 88, justifyContent: 'space-between' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  menuBox: {
+    position: 'absolute', top: Platform.OS==='ios'?80:70, right:15,
+    width: 150, borderRadius: 6, padding: 8, elevation: 8
   },
-  greetingText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 18,
-  },
-  dateTextHeader: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  menuContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 80 : 70,
-    right: 15,
-    width: 150,
-    borderRadius: 6,
-    paddingVertical: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  menuLight: {
-    backgroundColor: 'white',
-  },
-  menuDark: {
-    backgroundColor: '#222',
-  },
-  menuItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-  },
-  menuText: {
-    fontSize: 16,
-  },
-  greetingContainer: {
-    marginTop: 25,
-    alignItems: 'center',
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2f855a',
-    textShadowColor: 'rgba(255, 255, 255, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-  },
-  textLight: {
-    color: '#f4f4f4',
-  },
-  textDark: {
-    color: '#222',
-  },
-  motivationalTextBody: {
-    fontStyle: 'italic',
-    fontWeight: '600',
-    fontSize: 16,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  weekContainer: {
-    marginTop: 30,
-    flexDirection: 'row',
-    borderRadius: 30,
-    overflow: 'hidden',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    paddingHorizontal: 5,
-  },
-  weekBackground: {
+  menuLight: { backgroundColor: 'white' },
+  menuDark: { backgroundColor: '#333' },
+  menuItem: { padding: 12 },
+  menuText: { fontSize: 16 },
+
+  welcome: { alignItems: 'center', marginTop: 20 },
+  title: { fontSize: 28, fontWeight: '700', color: '#2f855a' },
+  subtitle: { fontSize: 16, fontStyle: 'italic', marginTop: 6, color: '#2f855a' },
+
+  logoContainer: { alignItems: 'center', marginVertical: 20 },
+  logo: { width: 120, height: 60, resizeMode: 'contain' },
+
+  calendar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    flex: 5,
-    paddingHorizontal: 5,
-    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 30,
   },
   dayCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 3,
-    marginVertical: 6,
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#e2e8f0'
   },
   todayCircle: {
     backgroundColor: '#18529D',
-    borderWidth: 7,
-    borderColor: '#38a169',
-    shadowColor: '#38a169',
-    shadowOffset: { width: 10, height: 10 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 10,
+    borderWidth: 4, borderColor: '#38a169'
   },
-  dayText: {
-    fontWeight: '700',
-    fontSize: 22,
-    color: '#22543d',
-  },
-  todayText: {
-    color: 'white',
-    fontWeight: '800',
-    fontSize: 24,
-  },
-  buttonsContainer: {
-    marginTop: 50,
-    paddingHorizontal: 20,
-  },
+  dayText: { fontSize: 16, color: '#2f855a' },
+  todayText: { fontSize: 16, color: 'white', fontWeight: '700' },
+
+  buttons: { paddingHorizontal: 20, marginTop: 10 },
   button: {
-    paddingVertical: 15,
+    backgroundColor: '#38a169',
+    paddingVertical: 14,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 6,
+    elevation: 4,
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 18,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+  buttonText: { color: 'white', fontSize: 18, fontWeight: '700' },
 });
