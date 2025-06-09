@@ -1,59 +1,62 @@
 // src/screens/SettingsScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity, Linking, Alert,
 } from 'react-native';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import UserService, { User } from '../services/UserService';
 
+const STORAGE_KEY_MATRICULA = 'userMatricula';
 const STAR_KEY = 'userStars';
 
 const SettingsScreen = ({ navigation }: { navigation: any }) => {
-  const isDark = useColorScheme() === 'dark';
-  const [stars, setStars] = useState<number>(0);
+  const [user, setUser] = useState<User | null>(null);
+  const [stars, setStars] = useState(0);
 
   useEffect(() => {
-    // Al montar, cargar la cantidad de estrellas desde storage
-    AsyncStorage.getItem(STAR_KEY)
-      .then((val) => {
-        const parsed = val ? parseInt(val, 10) : 0;
-        setStars(isNaN(parsed) ? 0 : parsed);
-      })
-      .catch(() => setStars(0));
+    // 1) carga matrícula y usuario
+    AsyncStorage.getItem(STORAGE_KEY_MATRICULA).then(m => {
+      if (m) {
+        const u = UserService.getUserByMatricula(m);
+        if (u) setUser(u);
+      }
+    });
+    // 2) carga estrellas
+    AsyncStorage.getItem(STAR_KEY).then(v => {
+      const n = v ? parseInt(v, 10) : 0;
+      setStars(isNaN(n) ? 0 : n);
+    });
   }, []);
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('authToken');
-    Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente');
+    await AsyncStorage.multiRemove(['authToken', STORAGE_KEY_MATRICULA]);
+    Alert.alert('Sesión cerrada', 'Has cerrado sesión correctamente.');
     navigation.replace('Login');
   };
 
+  const goToProfile = () => {
+    if (!user) {
+      Alert.alert('Error', 'No se encontró tu usuario, vuelve a iniciar sesión.');
+    } else {
+      navigation.navigate('Profile', { user });
+    }
+  };
+
   return (
-    <View style={[styles.container, isDark && styles.darkBg]}>
-      {/* Contador de estrellas en la parte superior */}
+    <View style={styles.container}>
+      {/* contador de estrellas */}
       <View style={styles.starsContainer}>
         <Ionicons name="star" size={24} color="#FFD700" />
-        <Text style={[styles.starsText, isDark && styles.textLight]}>
-          {stars} Estrella{stars === 1 ? '' : 's'}
-        </Text>
+        <Text style={styles.starsText}>{stars} Estrella{stars === 1 ? '' : 's'}</Text>
       </View>
 
-      <Text style={[styles.title, isDark && styles.textLight]}>Configuración</Text>
+      <Text style={styles.title}>Configuración</Text>
 
-      <TouchableOpacity
-        style={styles.optionButton}
-        onPress={() => navigation.navigate('Profile')}
-      >
+      <TouchableOpacity style={styles.optionButton} onPress={goToProfile}>
         <Text style={styles.optionText}>Perfil</Text>
       </TouchableOpacity>
 
-      {/* Toggle de modo oscuro (pendiente) */}
       <TouchableOpacity style={styles.optionButton}>
         <Text style={styles.optionText}>Modo Oscuro: Próximamente 🌙</Text>
       </TouchableOpacity>
@@ -75,56 +78,12 @@ const SettingsScreen = ({ navigation }: { navigation: any }) => {
 export default SettingsScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: '#fff',
-  },
-  darkBg: {
-    backgroundColor: '#121212',
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    justifyContent: 'center',
-  },
-  starsText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
-    color: '#000',
-  },
-  textLight: {
-    color: '#f4f4f4',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
-    color: '#000',
-  },
-  optionButton: {
-    padding: 14,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  logoutButton: {
-    marginTop: 30,
-    padding: 14,
-    backgroundColor: '#d32f2f',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  logoutText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  container: { flex:1, padding:24, backgroundColor:'#fff' },
+  starsContainer: { flexDirection:'row', justifyContent:'center', alignItems:'center', marginBottom:20 },
+  starsText: { marginLeft:8, fontSize:18, fontWeight:'600' },
+  title: { fontSize:22, fontWeight:'bold', textAlign:'center', marginBottom:30 },
+  optionButton: { padding:14, backgroundColor:'#e0e0e0', borderRadius:8, marginBottom:12 },
+  optionText: { fontSize:16 },
+  logoutButton: { marginTop:30, padding:14, backgroundColor:'#d32f2f', borderRadius:8, alignItems:'center' },
+  logoutText: { color:'#fff', fontWeight:'bold', fontSize:16 },
 });

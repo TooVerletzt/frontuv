@@ -1,27 +1,32 @@
 // src/screens/ProfileScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Alert, ActivityIndicator, TextInput, TouchableOpacity
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import UserService, { User } from '../services/UserService';
 import { RootStackParamList } from '../navigation/AppNavigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
-
 const LAST_UPDATE_KEY = 'profileLastUpdate';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
+
 const ProfileScreen = ({ navigation, route }: Props) => {
-  const { user } = route.params;           // <— viene de SettingsScreen
+  const { user } = route.params;           // <— llega aquí correctamente
   const [data, setData] = useState<User>(user);
   const [loading, setLoading] = useState(true);
   const [editable, setEditable] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(LAST_UPDATE_KEY).then(ts => {
-      const now = Date.now();
-      if (!ts || now - parseInt(ts, 10) > 1000 * 60 * 60 * 24 * 90) {
+      if (!ts || Date.now() - parseInt(ts, 10) > 90 * 24 * 3600 * 1000) {
         setEditable(true);
       }
     }).finally(() => setLoading(false));
@@ -78,7 +83,7 @@ const ProfileScreen = ({ navigation, route }: Props) => {
 
       {editable ? (
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>Guardar</Text>
+          <Text style={styles.saveText}>Guardar cambios</Text>
         </TouchableOpacity>
       ) : (
         <Text style={styles.note}>
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
   disabled: { backgroundColor:'#f0f0f0' },
   saveBtn: {
     backgroundColor:'#2f855a', padding:14, borderRadius:8,
-    alignItems:'center', marginTop:10
+    alignItems:'center', marginTop:10,
   },
   saveText: { color:'#fff', fontWeight:'700', fontSize:16 },
   note: { textAlign:'center', marginTop:12, color:'#666' },
