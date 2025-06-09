@@ -29,48 +29,33 @@ type ResistanceTestScreenProps = NativeStackScreenProps<
  * - ≥6    m/s: excelente     => 10
  */
 function computeResistanceScore(distance: number, time: number): number {
-  const speed = distance / time; // m/s
-  if (speed >= 6) {
-    return 10;
-  }
-  if (speed >= 4) {
-    return Math.round(((speed - 4) / 2) * 2) + 7; // mapea 4–6 → 7–9
-  }
-  if (speed >= 3) {
-    return Math.round((speed - 3) * 2) + 4; // mapea 3–4 → 4–6
-  }
-  if (speed >= 2) {
-    return Math.round((speed - 2) * 2) + 1; // mapea 2–3 → 1–3
-  }
+  const speed = distance / time;
+  if (speed >= 6) return 10;
+  if (speed >= 4) return Math.round(((speed - 4) / 2) * 2) + 7;
+  if (speed >= 3) return Math.round((speed - 3) * 2) + 4;
+  if (speed >= 2) return Math.round((speed - 2) * 2) + 1;
   return 0;
 }
 
 const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) => {
   const { onFinish } = route.params;
-  const [distance, setDistance] = useState('');     // Distancia en metros
-  const [timer, setTimer] = useState(0);            // Segundos transcurridos
-  const [isRunning, setIsRunning] = useState(false);
-  const [canEnterDistance, setCanEnterDistance] = useState(false);
-  const MAX_SPEED = 8;                              // m/s plausible máximo
-  
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Efecto para manejar el cronómetro
+  const [timer, setTimer] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [hasStopped, setHasStopped] = useState(false);
+  const [distance, setDistance] = useState('');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const MAX_SPEED = 8; // m/s plausible máximo
+
+  // Cronómetro
   useEffect(() => {
     if (isRunning) {
-      // iniciar
-      intervalRef.current = setInterval(() => {
-        setTimer(t => t + 1);
-      }, 1000);
-    } else {
-      // detener
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     return () => {
-      // limpieza al desmontar / cambiar isRunning
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -78,23 +63,21 @@ const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) 
     };
   }, [isRunning]);
 
-  // Efecto para habilitar ingreso de distancia tras 60s
-  useEffect(() => {
-    if (timer >= 60) {
-      setCanEnterDistance(true);
-    }
-  }, [timer]);
-
   const handleStart = () => {
     setTimer(0);
     setDistance('');
-    setCanEnterDistance(false);
+    setHasStopped(false);
     setIsRunning(true);
   };
 
-  const handleConfirmar = () => {
-    if (!canEnterDistance) {
-      Alert.alert('Espera primero', 'Debes correr al menos 60 segundos antes de ingresar distancia.');
+  const handleStop = () => {
+    setIsRunning(false);
+    setHasStopped(true);
+  };
+
+  const handleContinue = () => {
+    if (!hasStopped) {
+      Alert.alert('Primero detén el cronómetro', 'Pulsa "Detener" antes de continuar.');
       return;
     }
     const distNum = parseFloat(distance);
@@ -102,16 +85,16 @@ const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) 
       Alert.alert('Distancia inválida', 'Ingresa una distancia válida en metros.');
       return;
     }
-    // coherencia velocidad
     const speed = distNum / timer;
     if (speed > MAX_SPEED) {
       Alert.alert(
         'Datos incoherentes',
-        `La distancia es muy alta para ${timer}s.\nVelocidad ≈ ${speed.toFixed(1)} m/s (> ${MAX_SPEED} m/s).`
+        `La distancia es muy alta para ${timer}s.\nVelocidad ≈ ${speed.toFixed(
+          1
+        )} m/s (> ${MAX_SPEED} m/s).`
       );
       return;
     }
-    // puntaje y escala 0–100
     const score0to10 = computeResistanceScore(distNum, timer);
     const finalScore = score0to10 * 10;
 
@@ -119,8 +102,6 @@ const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) 
       'Resultado registrado',
       `Distancia: ${distNum.toFixed(1)} m\nTiempo: ${timer}s\nPuntaje: ${finalScore}/100`
     );
-
-    setIsRunning(false);
     onFinish(finalScore);
     navigation.goBack();
   };
@@ -133,7 +114,9 @@ const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) 
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Prueba de Resistencia</Text>
         <Text style={styles.description}>
-          Corre al menos 60 segundos. Luego ingresa la distancia recorrida (m).
+          1) Pulsa "Empezar" para iniciar el cronómetro.{"\n"}
+          2) Pulsa "Detener" para pausar y habilitar distancia.{"\n"}
+          3) Ingresa metros y pulsa "Continuar".
         </Text>
 
         <Text style={styles.timer}>Cronómetro: {timer}s</Text>
@@ -145,31 +128,28 @@ const ResistanceTestScreen = ({ navigation, route }: ResistanceTestScreenProps) 
           onChangeText={setDistance}
           style={[
             styles.input,
-            (!canEnterDistance || isRunning) && styles.inputDisabled,
+            (!hasStopped || isRunning) && styles.inputDisabled,
           ]}
-          editable={canEnterDistance && !isRunning}
+          editable={hasStopped && !isRunning}
         />
 
-        <TouchableOpacity
-          style={[styles.button, isRunning && styles.buttonDisabled]}
-          onPress={handleStart}
-          disabled={isRunning}
-        >
-          <Text style={styles.buttonText}>
-            {isRunning ? 'Corriendo…' : 'Iniciar'}
-          </Text>
-        </TouchableOpacity>
+        {!isRunning && !hasStopped && (
+          <TouchableOpacity style={styles.button} onPress={handleStart}>
+            <Text style={styles.buttonText}>Empezar</Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (!canEnterDistance || isRunning) && styles.buttonDisabled,
-          ]}
-          onPress={handleConfirmar}
-          disabled={!canEnterDistance || isRunning}
-        >
-          <Text style={styles.buttonText}>Confirmar</Text>
-        </TouchableOpacity>
+        {isRunning && (
+          <TouchableOpacity style={styles.button} onPress={handleStop}>
+            <Text style={styles.buttonText}>Detener</Text>
+          </TouchableOpacity>
+        )}
+
+        {!isRunning && hasStopped && (
+          <TouchableOpacity style={styles.button} onPress={handleContinue}>
+            <Text style={styles.buttonText}>Continuar</Text>
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -179,32 +159,52 @@ export default ResistanceTestScreen;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   description: {
-    fontSize: 16, textAlign: 'center', marginBottom: 20,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#555',
   },
   timer: {
-    fontSize: 28, fontWeight: '600', textAlign: 'center', marginBottom: 20,
+    fontSize: 26,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
-    borderColor: '#ccc', borderWidth: 1, borderRadius: 6,
-    padding: 12, marginBottom: 20, fontSize: 16, color: '#222',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+    color: '#222',
   },
   inputDisabled: {
-    backgroundColor: '#f0f0f0', color: '#888',
+    backgroundColor: '#f0f0f0',
+    color: '#888',
   },
   button: {
-    backgroundColor: '#2E7D32', padding: 14,
-    borderRadius: 8, alignItems: 'center', marginVertical: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: '#a5d6a7',
+    backgroundColor: '#2E7D32',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 8,
   },
   buttonText: {
-    color: '#fff', fontWeight: '700',
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
