@@ -1,6 +1,4 @@
-// src/navigation/RegisterScreen.tsx
 import React, { useState } from 'react';
-import UserService, { User } from '../services/UserService';
 import {
   View,
   Text,
@@ -14,13 +12,13 @@ import {
   useColorScheme,
   Alert,
 } from 'react-native';
+import ApiService from '../services/ApiService';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   Register: undefined;
   Login: undefined;
-  Home: undefined;
 };
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
@@ -30,137 +28,121 @@ const RegisterScreen = () => {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const [apellidoPaterno, setApellidoPaterno] = useState('');
-  const [apellidoMaterno, setApellidoMaterno] = useState('');
   const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [email, setEmail] = useState('');
   const [matricula, setMatricula] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validateAndRegister = () => {
+  const validateAndRegister = async () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!apellidoPaterno.trim()) newErrors.apellidoPaterno = 'Campo requerido';
-    if (!apellidoMaterno.trim()) newErrors.apellidoMaterno = 'Campo requerido';
+    if (!apellido.trim()) newErrors.apellido = 'Campo requerido';
     if (!nombre.trim()) newErrors.nombre = 'Campo requerido';
-
-    // Validar email básico
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(correo)) newErrors.correo = 'Correo inválido';
-
-    // Matrícula: debe iniciar con ZS + 8 dígitos
-    if (!/^ZS\d{8}$/i.test(matricula)) newErrors.matricula = 'Matrícula inválida';
-
-    if (password.length < 6 || password.length > 15) newErrors.password = 'Mínimo 6 caracteres y máximo 15';
+    if (!emailRegex.test(email)) newErrors.email = 'Correo inválido';
+    if (!/^zS\d{8}$/.test(matricula)) newErrors.matricula = 'Formato inválido';
+    if (password.length < 6 || password.length > 16) newErrors.password = 'Contraseña inválida';
     if (password !== confirmPassword) newErrors.confirmPassword = 'No coincide';
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    // Crear objeto User con los datos del formulario
-    const newUser: User = {
+    const payload = {
+      apellido,
       nombre,
-      apellidoPaterno,
-      apellidoMaterno,
-      correo,
+      email,
       matricula,
-      carrera: '', // si no tienes estos campos, pon vacíos o agrégalos
-      semestre: '',
-      sexo: '',
       password,
+      fecha_inicio: new Date().toISOString(),
     };
 
-    // Guardar usuario en UserService
-    UserService.addUser(newUser);
-
-    Alert.alert('Registro exitoso', `Usuario ${nombre} registrado.`);
-    navigation.replace('Login');
-
+    try {
+      const response = await ApiService.registerUser(payload);
+      if (response.success) {
+        Alert.alert('Registro exitoso', `Usuario ${nombre} registrado.`, [
+          { text: 'OK', onPress: () => navigation.replace('Login') },
+        ]);
+      } else {
+        Alert.alert('Error', response.message || 'No se pudo registrar el usuario.');
+      }
+    } catch (error: any) {
+      let message = 'No se pudo conectar al servidor.';
+      try {
+        const errorJson = JSON.parse(error.message.split(':').slice(2).join(':').trim());
+        message = errorJson.respuesta || errorJson.error || message;
+      } catch (_) {}
+      console.error('Error en registerUser:', error);
+      Alert.alert('Error de registro', message);
+    }
   };
 
   return (
     <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.title, isDark ? styles.textLight : styles.textDark]}>
-            Crear Cuenta
-          </Text>
-
-          {/** Campos **/}
-          <TextInput
-            placeholder="Apellido Paterno"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
-            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
-            value={apellidoPaterno}
-            onChangeText={setApellidoPaterno}
-            autoCapitalize="words"
-          />
-          {errors.apellidoPaterno && <Text style={styles.errorText}>{errors.apellidoPaterno}</Text>}
+          <Text style={[styles.title, isDark ? styles.textLight : styles.textDark]}>Crear Cuenta</Text>
 
           <TextInput
-            placeholder="Apellido Materno"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
+            placeholder="Apellido"
+            value={apellido}
+            onChangeText={setApellido}
             style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
-            value={apellidoMaterno}
-            onChangeText={setApellidoMaterno}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
             autoCapitalize="words"
           />
-          {errors.apellidoMaterno && <Text style={styles.errorText}>{errors.apellidoMaterno}</Text>}
+          {errors.apellido && <Text style={styles.errorText}>{errors.apellido}</Text>}
 
           <TextInput
             placeholder="Nombre(s)"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
-            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
             value={nombre}
             onChangeText={setNombre}
+            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
             autoCapitalize="words"
           />
           {errors.nombre && <Text style={styles.errorText}>{errors.nombre}</Text>}
 
           <TextInput
             placeholder="Correo Electrónico"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
+            value={email}
+            onChangeText={setEmail}
             style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
-            value={correo}
-            onChangeText={setCorreo}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {errors.correo && <Text style={styles.errorText}>{errors.correo}</Text>}
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
           <TextInput
-            placeholder="Matrícula (ej. ZS24123456)"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
-            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
+            placeholder="Matrícula (ej. zS24123456)"
             value={matricula}
             onChangeText={setMatricula}
-            autoCapitalize="characters"
+            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
+            autoCapitalize="none"
             maxLength={10}
           />
           {errors.matricula && <Text style={styles.errorText}>{errors.matricula}</Text>}
 
           <TextInput
             placeholder="Contraseña"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
-            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
             value={password}
             onChangeText={setPassword}
+            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
             secureTextEntry
           />
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
           <TextInput
             placeholder="Confirmar contraseña"
-            placeholderTextColor={isDark ? '#aaa' : '#666'}
-            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
+            style={[styles.input, isDark ? styles.inputDark : styles.inputLight]}
+            placeholderTextColor={isDark ? '#aaa' : '#666'}
             secureTextEntry
           />
           {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
@@ -232,7 +214,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   registerButton: {
-    backgroundColor: '#2f855a', // Verde UV profesional
+    backgroundColor: '#2f855a',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -258,4 +240,3 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
-

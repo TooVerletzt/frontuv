@@ -1,5 +1,5 @@
 // src/screens/ResultsScreen.tsx
-import React from 'react';
+import React, { useEffect } from 'react'; // ← agregado useEffect
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import Button from '@/components/Button';
+import ApiService from '../services/ApiService'; // ← agregado ApiService
 
 interface ResultsParams {
   fuerza: number;
@@ -16,6 +17,7 @@ interface ResultsParams {
   flexibilidad: number;
   velocidad: number;
   imc: string;
+  userMatricula?: string; // ← agregado para identificar usuario
 }
 
 const { width } = Dimensions.get('window');
@@ -90,17 +92,42 @@ const ResultsScreen = ({
   route: { params?: Partial<ResultsParams> };
   navigation: any;
 }) => {
-  // Si route.params es undefined, le ponemos valores por defecto:
   const {
     fuerza = 0,
     resistencia = 0,
     flexibilidad = 0,
     velocidad = 0,
     imc = '—',
+    userMatricula = 'ZS24000001', // ← por si no viene
   } = route.params || {};
 
-  // Si no se recibió ningún parámetro, podría mostrar un mensaje de “No hay datos” o regresar al Home
   const promedio = Math.round((fuerza + resistencia + flexibilidad + velocidad) / 4);
+
+  // ─── Enviar los resultados al backend automáticamente ───
+  useEffect(() => {
+    const timestamp = new Date().toISOString();
+
+    const enviarResultado = async (prueba: string, puntuacion: number) => {
+      try {
+        const payload = {
+          matricula: userMatricula,
+          prueba: prueba as any,
+          puntuacion,
+          rawValue: puntuacion, // puedes reemplazar esto si tienes valores reales
+          timestamp,
+        };
+        await ApiService.sendTestResult(payload);
+        console.log(`✅ Resultado de ${prueba} enviado`);
+      } catch (err) {
+        console.error(`❌ Error al enviar ${prueba}:`, err);
+      }
+    };
+
+    enviarResultado('strength', fuerza);
+    enviarResultado('resistance', resistencia);
+    enviarResultado('flexibility', flexibilidad);
+    enviarResultado('speed', velocidad);
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -120,7 +147,7 @@ const ResultsScreen = ({
 
       <Button
         title="Ir al Menú Principal"
-        onPress={() => navigation.navigate('Home')}
+        onPress={() => navigation.navigate('Home', { evaluationsDone: true, userMatricula })}
       />
     </ScrollView>
   );

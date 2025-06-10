@@ -1,4 +1,5 @@
 // src/screens/LoginScreen.tsx
+import { saveToken } from '../utils/TokenManager'; // Importar arriba
 import React, { useState } from 'react';
 import {
   View,
@@ -15,7 +16,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import UserService from '../services/UserService';
-
 
 type RootStackParamList = {
   Login: undefined;
@@ -37,34 +37,36 @@ const LoginScreen = () => {
 
   const isDark = colorScheme === 'dark';
 
-  const validateAndLogin = () => {
+  const validateAndLogin = async () => {
     let valid = true;
     setMatriculaError('');
     setPasswordError('');
 
-    // Validar matrícula (ejemplo: debe iniciar con 'ZS' + 8 dígitos)
-    if (!/^ZS\d{8}$/i.test(matricula)) {
-      setMatriculaError('La matrícula debe iniciar con "ZS" seguido de 8 dígitos.');
+    // Validar matrícula (ejemplo: debe iniciar con 'zS' + 8 dígitos)
+    if (!/^zS\d{8}$/i.test(matricula)) {
+      setMatriculaError('La matrícula debe iniciar con "zS" seguido de 8 dígitos.');
       valid = false;
     }
-    if (password.length < 6 && password.length > 15) {
+    if (password.length < 6 || password.length > 15) {
       setPasswordError('La contraseña debe tener al menos 6 caracteres y menos de 15');
       valid = false;
     }
 
     if (!valid) return;
 
-    const isAuthenticated = UserService.validateCredentials(matricula, password);
-    if (!isAuthenticated) {
-      Alert.alert('Usuario no encontrado', 'No existe un usuario con estas credenciales. Por favor regístrate.');
-      return;
+    try {
+      const response = await UserService.loginUser(matricula, password); // Llamada a API real
+      if (response?.token) {
+        await saveToken(response.token); // Guardar token en almacenamiento local
+        Alert.alert('Login exitoso', `Bienvenido ${matricula}!`);
+        navigation.replace('Home');
+      } else {
+        Alert.alert('Credenciales inválidas', response?.message || 'Verifica tus datos');
+      }
+    } catch (err) {
+      console.error('Error en login:', err);
+      Alert.alert('Error', 'Hubo un problema al iniciar sesión. Intenta más tarde.');
     }
-
-
-    // Aquí pondrías la lógica real de autenticación con API
-    // Por ahora simulamos éxito
-    Alert.alert('Login exitoso', `Bienvenido ${matricula}!`);
-    navigation.replace('Home');
   };
 
   return (
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   loginButton: {
-    backgroundColor: '#2f855a', // verde UV profesional
+    backgroundColor: '#2f855a',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',

@@ -19,6 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserService from '../services/UserService';
+import ApiService from '../services/ApiService'; // ← AGREGADO
 
 const logo = require('../../assets/logo-uvfit.png');
 
@@ -82,6 +83,20 @@ const HomeScreen = () => {
         setIsNewUser(false);
         navigation.setParams({ evaluationsDone: false });
       }
+
+      // Consulta real desde la API
+      const verificarEvaluaciones = async () => {
+        try {
+          const historial = await ApiService.getProgressHistory(loggedUserMatricula);
+          const hayEvaluaciones = historial.length > 0;
+          setIsNewUser(!hayEvaluaciones);
+        } catch (error) {
+          console.error('Error al verificar evaluaciones:', error);
+          setIsNewUser(true);
+        }
+      };
+
+      verificarEvaluaciones();
     }, [route.params])
   );
 
