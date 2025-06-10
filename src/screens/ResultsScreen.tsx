@@ -1,15 +1,16 @@
 // src/screens/ResultsScreen.tsx
-import React, { useEffect } from 'react'; // ← agregado useEffect
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import Button from '@/components/Button';
-import ApiService from '../services/ApiService'; // ← agregado ApiService
+import ApiService from '../services/ApiService';
 
 interface ResultsParams {
   fuerza: number;
@@ -17,7 +18,7 @@ interface ResultsParams {
   flexibilidad: number;
   velocidad: number;
   imc: string;
-  userMatricula?: string; // ← agregado para identificar usuario
+  userMatricula?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -98,41 +99,65 @@ const ResultsScreen = ({
     flexibilidad = 0,
     velocidad = 0,
     imc = '—',
-    userMatricula = 'ZS24000001', // ← por si no viene
+    userMatricula = 'ZS24000001',
   } = route.params || {};
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const promedio = Math.round((fuerza + resistencia + flexibilidad + velocidad) / 4);
 
-  // ─── Enviar los resultados al backend automáticamente ───
   useEffect(() => {
     const timestamp = new Date().toISOString();
 
-    const enviarResultado = async (prueba: string, puntuacion: number) => {
-      try {
-        const payload = {
-          matricula: userMatricula,
-          prueba: prueba as any,
-          puntuacion,
-          rawValue: puntuacion, // puedes reemplazar esto si tienes valores reales
-          timestamp,
-        };
-        await ApiService.sendTestResult(payload);
-        console.log(`✅ Resultado de ${prueba} enviado`);
-      } catch (err) {
-        console.error(`❌ Error al enviar ${prueba}:`, err);
-      }
+    const enviarResultado = async (
+  prueba: 'strength' | 'resistance' | 'flexibility' | 'speed',
+  puntuacion: number
+) => {
+  try {
+    const payload = {
+      matricula: userMatricula,
+      prueba,
+      puntuacion,
+      rawValue: puntuacion,
+      timestamp,
     };
+    await ApiService.sendTestResult(payload);
+  } catch (err) {
+    console.error(`❌ Error al enviar ${prueba}:`, err);
+    setError('No se pudo registrar tu evaluación. Intenta más tarde.');
+  }
+};
 
-    enviarResultado('strength', fuerza);
-    enviarResultado('resistance', resistencia);
-    enviarResultado('flexibility', flexibilidad);
-    enviarResultado('speed', velocidad);
+
+    Promise.all([
+      enviarResultado('strength', fuerza),
+      enviarResultado('resistance', resistencia),
+      enviarResultado('flexibility', flexibilidad),
+      enviarResultado('speed', velocidad),
+    ]).finally(() => setLoading(false));
   }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#2f855a" />
+        <Text>Cargando resultados...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: 'red', marginBottom: 20 }}>{error}</Text>
+        <Button title="Volver al inicio" onPress={() => navigation.navigate('Home')} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>¡Evaluación Completada!</Text>
-
       <Text style={styles.imcText}>Tu IMC fue: {imc}</Text>
       <Text style={styles.promedioText}>Promedio general: {promedio}/100</Text>
 
@@ -160,6 +185,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     backgroundColor: '#fff',
+    flexGrow: 1,
   },
   title: {
     fontSize: 24,

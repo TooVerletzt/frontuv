@@ -2,21 +2,14 @@
 import { getToken } from '../utils/TokenManager';
 import { REACT_NATIVE_API_URL } from '@env';
 
-export interface PhysicalEvaluationPayload {
-  matricula: string;
+export type PhysicalEvaluationPayload = {
+  id_usuario: number;
+  fecha_evaluacion: string;
   peso: number;
-  estatura: number;
-  sexo: string;
-  cintura: number;
-  cadera: number;
-  zonaGrasa: string;
-  tipoFisico: string;
-  tiempoSinEjercicio: string;
-  lesiones: string | null;
-  tipoEjercicio: string | null;
-  metaPersonal: string;
-  imc: number;
-}
+  altura: number;
+  observaciones: string;
+};
+
 
 export interface TestResultPayload {
   matricula: string;
