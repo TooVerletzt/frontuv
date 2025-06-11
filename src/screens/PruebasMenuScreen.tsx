@@ -19,7 +19,10 @@ type PruebasMenuNavigationProp = NativeStackNavigationProp<
 const PruebasMenuScreen = () => {
   const navigation = useNavigation<PruebasMenuNavigationProp>();
   const route = useRoute();
-  const { imc } = route.params as { imc: string };
+  const { imc, idEvaluacionFisica } = route.params as {
+    imc: string;
+    idEvaluacionFisica: number;
+  };
 
   const [scores, setScores] = useState<{
     strength: number | null;
@@ -33,22 +36,21 @@ const PruebasMenuScreen = () => {
     resistance: null,
   });
 
-  const markScore = (key: keyof typeof scores, score: number) => {
-    setScores((prev) => ({ ...prev, [key]: score }));
+  const handleScoreUpdate = (key: keyof typeof scores) => (score: number) => {
+    setScores(prev => ({ ...prev, [key]: score }));
   };
 
-  const allDone = Object.values(scores).every((v) => v !== null);
+  const allDone = Object.values(scores).every(s => s !== null);
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Elige tu prueba</Text>
 
-      {/* 1. Prueba de Flexibilidad (estiramiento previo) */}
       <TouchableOpacity
         style={[styles.button, scores.flexibility !== null && styles.disabled]}
         onPress={() =>
           navigation.navigate('Flexibility', {
-            onFinish: (score) => markScore('flexibility', score),
+            onFinish: handleScoreUpdate('flexibility'),
           })
         }
         disabled={scores.flexibility !== null}
@@ -60,12 +62,11 @@ const PruebasMenuScreen = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* 2. Prueba de Fuerza */}
       <TouchableOpacity
         style={[styles.button, scores.strength !== null && styles.disabled]}
         onPress={() =>
           navigation.navigate('Strength', {
-            onFinish: (score) => markScore('strength', score),
+            onFinish: handleScoreUpdate('strength'),
           })
         }
         disabled={scores.strength !== null}
@@ -77,12 +78,11 @@ const PruebasMenuScreen = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* 3. Prueba de Velocidad */}
       <TouchableOpacity
         style={[styles.button, scores.speed !== null && styles.disabled]}
         onPress={() =>
           navigation.navigate('Speed', {
-            onFinish: (score) => markScore('speed', score),
+            onFinish: handleScoreUpdate('speed'),
           })
         }
         disabled={scores.speed !== null}
@@ -94,12 +94,11 @@ const PruebasMenuScreen = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* 4. Prueba de Resistencia */}
       <TouchableOpacity
         style={[styles.button, scores.resistance !== null && styles.disabled]}
         onPress={() =>
           navigation.navigate('Resistance', {
-            onFinish: (score) => markScore('resistance', score),
+            onFinish: handleScoreUpdate('resistance'),
           })
         }
         disabled={scores.resistance !== null}
@@ -120,7 +119,8 @@ const PruebasMenuScreen = () => {
               velocidad: scores.speed!,
               flexibilidad: scores.flexibility!,
               resistencia: scores.resistance!,
-              imc: imc,
+              imc,
+              idEvaluacionFisica,
             })
           }
         >

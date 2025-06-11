@@ -72,7 +72,7 @@ const PhysicalEvaluationScreen = () => {
 
     try {
       const tokenPayload = await getTokenPayload();
-      const id_usuario = parseInt(tokenPayload?.id); // ← ESTO ES LO CORRECTO
+      const id_usuario = parseInt(tokenPayload?.id);
       if (!id_usuario || isNaN(id_usuario) || id_usuario < 1) {
         throw new Error('ID de usuario no válido');
       }
@@ -85,10 +85,19 @@ const PhysicalEvaluationScreen = () => {
         observaciones: `Sexo: ${sexo}, IMC: ${imc}`,
       };
 
-      await ApiService.sendPhysicalEvaluation(evaluacion);
+      const response = await ApiService.sendPhysicalEvaluation(evaluacion);
+      const idEvaluacionFisica = response?.id;
+
+      if (!idEvaluacionFisica) throw new Error('No se obtuvo ID de evaluación física');
 
       Alert.alert('¡Éxito!', 'Evaluación registrada correctamente.', [
-        { text: 'OK', onPress: () => navigation.navigate('PruebasMenuScreen', { imc }) }
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('PruebasMenuScreen', {
+            imc,
+            idEvaluacionFisica,
+          }),
+        },
       ]);
     } catch (error) {
       console.error('❌ Error al guardar evaluación:', error);
@@ -97,105 +106,174 @@ const PhysicalEvaluationScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, isDark ? styles.textLight : styles.textDark]}>
-          Datos Físicos
-        </Text>
+  <SafeAreaView style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
+    <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.title, isDark ? styles.textLight : styles.textDark]}>
+        Datos Físicos
+      </Text>
 
-        <TextInput placeholder="Peso (kg)" keyboardType="numeric" value={peso} onChangeText={setPeso}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.peso && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.peso && <Text style={styles.errorText}>{errors.peso}</Text>}
+      <TextInput
+        placeholder="Peso (kg)"
+        keyboardType="numeric"
+        value={peso}
+        onChangeText={setPeso}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.peso && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.peso && <Text style={styles.errorText}>{errors.peso}</Text>}
 
-        <TextInput placeholder="Estatura (m)" keyboardType="numeric" value={estatura} onChangeText={setEstatura}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.estatura && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.estatura && <Text style={styles.errorText}>{errors.estatura}</Text>}
+      <TextInput
+        placeholder="Estatura (m)"
+        keyboardType="numeric"
+        value={estatura}
+        onChangeText={setEstatura}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.estatura && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.estatura && <Text style={styles.errorText}>{errors.estatura}</Text>}
 
-        <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>IMC: {imc}</Text>
-        <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>Categoría: {imcCategory}</Text>
+      <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>IMC: {imc}</Text>
+      <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>Categoría: {imcCategory}</Text>
 
-        <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>Sexo</Text>
-        <View style={styles.selectorContainer}>
-          {['Masculino', 'Femenino', 'Otro'].map(opt => (
-            <TouchableOpacity key={opt} style={[styles.selectorOption, sexo === opt && styles.selectorOptionSelected]}
-              onPress={() => setSexo(opt)}>
-              <Text style={sexo === opt ? styles.selectorTextSelected : styles.selectorText}>{opt}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {errors.sexo && <Text style={styles.errorText}>{errors.sexo}</Text>}
+      <Text style={[styles.label, isDark ? styles.textLight : styles.textDark]}>Sexo</Text>
+      <View style={styles.selectorContainer}>
+        {['Masculino', 'Femenino', 'Otro'].map((opt) => (
+          <TouchableOpacity
+            key={opt}
+            style={[
+              styles.selectorOption,
+              sexo === opt && styles.selectorOptionSelected,
+            ]}
+            onPress={() => setSexo(opt)}
+          >
+            <Text style={sexo === opt ? styles.selectorTextSelected : styles.selectorText}>
+              {opt}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {errors.sexo && <Text style={styles.errorText}>{errors.sexo}</Text>}
 
-        <TextInput placeholder="Cintura (cm)" keyboardType="numeric" value={cintura} onChangeText={setCintura}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.cintura && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.cintura && <Text style={styles.errorText}>{errors.cintura}</Text>}
+      <TextInput
+        placeholder="Cintura (cm)"
+        keyboardType="numeric"
+        value={cintura}
+        onChangeText={setCintura}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.cintura && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.cintura && <Text style={styles.errorText}>{errors.cintura}</Text>}
 
-        <TextInput placeholder="Cadera (cm)" keyboardType="numeric" value={cadera} onChangeText={setCadera}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.cadera && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.cadera && <Text style={styles.errorText}>{errors.cadera}</Text>}
+      <TextInput
+        placeholder="Cadera (cm)"
+        keyboardType="numeric"
+        value={cadera}
+        onChangeText={setCadera}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.cadera && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.cadera && <Text style={styles.errorText}>{errors.cadera}</Text>}
 
-        <TextInput placeholder="Zona de Grasa" value={zonaGrasa} onChangeText={setZonaGrasa}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.zonaGrasa && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.zonaGrasa && <Text style={styles.errorText}>{errors.zonaGrasa}</Text>}
+      <TextInput
+        placeholder="Zona de Grasa"
+        value={zonaGrasa}
+        onChangeText={setZonaGrasa}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.zonaGrasa && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.zonaGrasa && <Text style={styles.errorText}>{errors.zonaGrasa}</Text>}
 
-        <TextInput placeholder="Tipo físico" value={tipoFisico} onChangeText={setTipoFisico}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.tipoFisico && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.tipoFisico && <Text style={styles.errorText}>{errors.tipoFisico}</Text>}
+      <TextInput
+        placeholder="Tipo físico"
+        value={tipoFisico}
+        onChangeText={setTipoFisico}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.tipoFisico && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.tipoFisico && <Text style={styles.errorText}>{errors.tipoFisico}</Text>}
 
-        <TextInput placeholder="Tiempo sin ejercicio" value={tiempoSinEjercicio} onChangeText={setTiempoSinEjercicio}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.tiempoSinEjercicio && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.tiempoSinEjercicio && <Text style={styles.errorText}>{errors.tiempoSinEjercicio}</Text>}
+      <TextInput
+        placeholder="Tiempo sin ejercicio"
+        value={tiempoSinEjercicio}
+        onChangeText={setTiempoSinEjercicio}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.tiempoSinEjercicio && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.tiempoSinEjercicio && <Text style={styles.errorText}>{errors.tiempoSinEjercicio}</Text>}
 
-        <TextInput placeholder="Meta personal" value={metaPersonal} onChangeText={setMetaPersonal}
-          style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.metaPersonal && styles.errorBorder]}
-          placeholderTextColor={isDark ? '#aaa' : '#666'} />
-        {errors.metaPersonal && <Text style={styles.errorText}>{errors.metaPersonal}</Text>}
+      <TextInput
+        placeholder="Meta personal"
+        value={metaPersonal}
+        onChangeText={setMetaPersonal}
+        style={[styles.input, isDark ? styles.inputDark : styles.inputLight, errors.metaPersonal && styles.errorBorder]}
+        placeholderTextColor={isDark ? '#aaa' : '#666'}
+      />
+      {errors.metaPersonal && <Text style={styles.errorText}>{errors.metaPersonal}</Text>}
 
-        <TouchableOpacity style={styles.submitButton} onPress={validateAndContinue}>
-          <Text style={styles.submitButtonText}>Continuar</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-export default PhysicalEvaluationScreen;
-
-
-
+      <TouchableOpacity style={styles.submitButton} onPress={validateAndContinue}>
+        <Text style={styles.submitButtonText}>Continuar</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  </SafeAreaView>
+);
+}
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 20 },
   lightBg: { backgroundColor: '#fff' },
   darkBg: { backgroundColor: '#121212' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 25, textAlign: 'center' },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 25,
+    textAlign: 'center',
+  },
   input: {
-    borderRadius: 8, height: 50, fontSize: 16, paddingHorizontal: 15, marginBottom: 12
+    borderRadius: 8,
+    height: 50,
+    fontSize: 16,
+    paddingHorizontal: 15,
+    marginBottom: 12,
   },
   inputLight: { backgroundColor: '#f1f1f1', color: '#222' },
   inputDark: { backgroundColor: '#333', color: '#eee' },
-  label: { fontSize: 16, fontWeight: '600', marginBottom: 6 },
-  selectorContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
-  selectorOption: {
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1,
-    borderColor: '#888', marginRight: 8, marginBottom: 8,
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 6,
+    marginTop: 10,
   },
-  selectorOptionSelected: { backgroundColor: '#2f855a', borderColor: '#2f855a' },
+  selectorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  selectorOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#888',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  selectorOptionSelected: {
+    backgroundColor: '#2f855a',
+    borderColor: '#2f855a',
+  },
   selectorText: { fontSize: 14, color: '#555' },
   selectorTextSelected: { color: 'white' },
   errorText: { color: '#e53935', marginBottom: 8 },
   errorBorder: { borderColor: '#e53935', borderWidth: 1 },
   submitButton: {
-    backgroundColor: '#2f855a', paddingVertical: 16, borderRadius: 12,
-    alignItems: 'center', marginTop: 20,
+    backgroundColor: '#2f855a',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
   },
   submitButtonText: { color: 'white', fontWeight: '700', fontSize: 18 },
   textLight: { color: '#eee' },
   textDark: { color: '#222' },
 });
+export default PhysicalEvaluationScreen;

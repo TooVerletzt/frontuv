@@ -10,13 +10,10 @@ export type PhysicalEvaluationPayload = {
   observaciones: string;
 };
 
-
 export interface TestResultPayload {
-  matricula: string;
-  prueba: 'strength' | 'speed' | 'flexibility' | 'resistance';
-  puntuacion: number;
-  rawValue: number;
-  timestamp: string;
+  id_evaluacion_fisica: number; // ← ahora coincide con el backend
+  tipo: 'strength' | 'speed' | 'flexibility' | 'resistance'; // ← requerido por DTO
+  resultado: number; // ← entre 0 y 100
 }
 
 export interface RoutineExercise {
@@ -34,31 +31,42 @@ export default class ApiService {
   private static baseUrl = REACT_NATIVE_API_URL;
 
   // ─── 1. ENVIAR datos de evaluación física ─────────────────────────────────────
-  static async sendPhysicalEvaluation(
-    payload: PhysicalEvaluationPayload
-  ): Promise<{ success: boolean; message?: string }> {
-    const token = await getToken();
-    const url = `${this.baseUrl}/physicalEvaluations`;
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorBody}`);
-      }
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error('Error en sendPhysicalEvaluation:', err);
-      throw err;
+static async sendPhysicalEvaluation(
+  payload: PhysicalEvaluationPayload
+): Promise<{ success: boolean; id: number }> {
+  const token = await getToken();
+  const url = `${this.baseUrl}/physicalEvaluations`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorBody}`);
     }
+
+    const data = await response.json();
+    console.log('📦 Evaluación guardada:', data);
+
+    // 💡 ADAPTADO para backend que responde con `id_evaluacion_fisica`
+    const id = data.id_evaluacion_fisica;
+    if (!id) throw new Error('El backend no devolvió un ID');
+
+    return { success: true, id };
+  } catch (err) {
+    console.error('❌ Error en sendPhysicalEvaluation:', err);
+    throw err;
   }
+}
+
+
 
   // ─── 2. ENVIAR resultados de cada prueba ────────────────────────────────────────
   static async sendTestResult(
@@ -87,6 +95,8 @@ export default class ApiService {
     }
   }
 
+  // ... (todo lo demás queda igual, sin quitarte nada)
+
   // ─── 3. OBTENER la rutina diaria ─────────────────────────────────────────────────
   static async getDailyRoutine(matricula: string): Promise<RoutineExercise[]> {
     const token = await getToken();
@@ -109,36 +119,42 @@ export default class ApiService {
   }
 
   // ─── 4. OBTENER historial de avances ─────────────────────────────────────────────
-  static async getProgressHistory(
-    matricula: string
-  ): Promise<
-    {
-      date: string;
-      strength: number;
-      speed: number;
-      flexibility: number;
-      resistance: number;
-      imc: number;
-    }[]
-  > {
-    const token = await getToken();
-    const url = `${this.baseUrl}/avances/history?matricula=${encodeURIComponent(matricula)}`;
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const json = await response.json();
-      return json.history ?? [];
-    } catch (err) {
-      console.error('Error en getProgressHistory:', err);
-      throw err;
-    }
+  static async getProgressHistory(matricula: string): Promise<
+  {
+    date: string;
+    peso_actual: number;
+    observacion: string;
+  }[]
+> {
+  const token = await getToken();
+  const url = `${this.baseUrl}/avances`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const json = await response.json();
+
+    // Filtrar los avances con datos útiles del usuario
+    const delUsuario = json.filter((a: any) => a?.id_usuario_rutina != null); // o usa tu lógica real
+
+    return delUsuario.map((a: any) => ({
+      date: a.fecha_avance ?? a.createdAt?.split('T')[0],
+      peso_actual: a.peso_actual ?? 0,
+      observacion: a.observacion ?? '',
+    }));
+  } catch (err) {
+    console.error('Error en getProgressHistory:', err);
+    throw err;
   }
+}
+
+
 
   // ─── 5. ENVIAR datos de perfil/registro de usuario ───────────────────────────────
 static async registerUser(payload: {
@@ -251,22 +267,28 @@ static async registerUser(payload: {
 
   // ─── 9. OBTENER rutinas asignadas ────────────────────────────────────────────────
   static async getRutinasAsignadas(matricula: string): Promise<RoutineExercise[]> {
-    const token = await getToken();
-    const url = `${this.baseUrl}/usuarioRutinas?matricula=${encodeURIComponent(matricula)}`;
-    try {
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      return json.rutinas ?? [];
-    } catch (err) {
-      console.error('Error en getRutinasAsignadas:', err);
-      throw err;
-    }
+  const token = await getToken();
+  const url = `${this.baseUrl}/usuarioRutinas`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+
+    // Filtrar rutinas asignadas al usuario
+    return (json || []).filter((r: any) => r.matricula === matricula);
+  } catch (err) {
+    console.error('Error en getRutinasAsignadas:', err);
+    throw err;
   }
+}
+
 
   // ─── 10. LOGIN de usuario ────────────────────────────────────────────────────────
   static async loginUser(

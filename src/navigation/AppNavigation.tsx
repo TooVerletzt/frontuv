@@ -26,17 +26,18 @@ import DailyRoutineScreen from '../screens/DailyRoutineScreen';
 import MotivationalScreen from '../screens/MotivationalScreen';
 import PerformanceSummaryScreen from '../screens/PerformanceSummaryScreen';
 
+// ✅ src/navigation/AppNavigation.tsx actualizado
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Register: undefined;
   RecoverCredentials: undefined;
 
-  Home: undefined;
+  Home: { evaluationsDone?: boolean; userMatricula?: string } | undefined;
   Profile: { user: User };
 
   PhysicalEvaluationScreen: undefined;
-  PruebasMenuScreen: { imc: string };
+  PruebasMenuScreen: { imc: string; idEvaluacionFisica: number };
 
   Strength: { onFinish: (score: number) => void };
   Speed: { onFinish: (score: number) => void };
@@ -45,12 +46,14 @@ export type RootStackParamList = {
 
   Progress: undefined;
   Results: {
-    fuerza: number;
-    velocidad: number;
-    flexibilidad: number;
-    resistencia: number;
-    imc: string;
-  };
+  fuerza: number;
+  velocidad: number;
+  flexibilidad: number;
+  resistencia: number;
+  imc: string;
+  idEvaluacionFisica: number;
+};
+
 
   Settings: undefined;
   Routine: undefined;

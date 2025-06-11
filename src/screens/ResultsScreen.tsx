@@ -7,10 +7,12 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 import Button from '@/components/Button';
 import ApiService from '../services/ApiService';
+import { getTokenPayload } from '../utils/TokenManager';
 
 interface ResultsParams {
   fuerza: number;
@@ -18,7 +20,6 @@ interface ResultsParams {
   flexibilidad: number;
   velocidad: number;
   imc: string;
-  userMatricula?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -99,7 +100,6 @@ const ResultsScreen = ({
     flexibilidad = 0,
     velocidad = 0,
     imc = '—',
-    userMatricula = 'ZS24000001',
   } = route.params || {};
 
   const [loading, setLoading] = useState(true);
@@ -107,34 +107,54 @@ const ResultsScreen = ({
   const promedio = Math.round((fuerza + resistencia + flexibilidad + velocidad) / 4);
 
   useEffect(() => {
-    const timestamp = new Date().toISOString();
+    const enviarTodo = async () => {
+      const timestamp = new Date().toISOString();
 
-    const enviarResultado = async (
-  prueba: 'strength' | 'resistance' | 'flexibility' | 'speed',
-  puntuacion: number
-) => {
-  try {
-    const payload = {
-      matricula: userMatricula,
-      prueba,
-      puntuacion,
-      rawValue: puntuacion,
-      timestamp,
+      try {
+        const tokenPayload = await getTokenPayload();
+        const id_usuario = parseInt(tokenPayload?.id);
+
+        if (!id_usuario || isNaN(id_usuario)) {
+          throw new Error('ID de usuario inválido');
+        }
+
+        const evaluacionResponse = await ApiService.sendPhysicalEvaluation({
+          id_usuario,
+          fecha_evaluacion: timestamp,
+          peso: 65,
+          altura: 1.70,
+          observaciones: `IMC: ${imc}`,
+        });
+
+        const idEvaluacion = evaluacionResponse?.id;
+        if (!idEvaluacion) throw new Error('No se obtuvo ID de evaluación física');
+
+        const enviarResultado = async (
+          tipo: 'strength' | 'resistance' | 'flexibility' | 'speed',
+          resultado: number
+        ) => {
+          await ApiService.sendTestResult({
+            id_evaluacion_fisica: idEvaluacion,
+            tipo,
+            resultado,
+          });
+        };
+
+        await Promise.all([
+          enviarResultado('strength', fuerza),
+          enviarResultado('resistance', resistencia),
+          enviarResultado('flexibility', flexibilidad),
+          enviarResultado('speed', velocidad),
+        ]);
+      } catch (err) {
+        console.error('❌ Error al enviar evaluaciones físicas:', err);
+        setError('No se pudo registrar tu evaluación. Intenta más tarde.');
+      } finally {
+        setLoading(false);
+      }
     };
-    await ApiService.sendTestResult(payload);
-  } catch (err) {
-    console.error(`❌ Error al enviar ${prueba}:`, err);
-    setError('No se pudo registrar tu evaluación. Intenta más tarde.');
-  }
-};
 
-
-    Promise.all([
-      enviarResultado('strength', fuerza),
-      enviarResultado('resistance', resistencia),
-      enviarResultado('flexibility', flexibilidad),
-      enviarResultado('speed', velocidad),
-    ]).finally(() => setLoading(false));
+    enviarTodo();
   }, []);
 
   if (loading) {
@@ -170,10 +190,7 @@ const ResultsScreen = ({
         <RingChart percentage={flexibilidad} label="Flexibilidad" />
       </View>
 
-      <Button
-        title="Ir al Menú Principal"
-        onPress={() => navigation.navigate('Home', { evaluationsDone: true, userMatricula })}
-      />
+      <Button title="Ir al Menú Principal" onPress={() => navigation.navigate('Home')} />
     </ScrollView>
   );
 };
